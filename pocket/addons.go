@@ -17,7 +17,7 @@ func (this *RetrieveResponse) dump(filename string) {
 	ioutil.WriteFile(filename, pretty, 0666)
 }
 
-func (this *Api) RetrieveAllArticles() (items []Item) {
+func (this *Api) RetrieveAllArticles() (items []Item, err error) {
 	request := Request{
 		State:       "all",
 		ContentType: "article",
@@ -28,19 +28,25 @@ func (this *Api) RetrieveAllArticles() (items []Item) {
 }
 
 /* Cached retrieve for testing */
-func (this *Api) CachedRetrieve(request Request) (items []Item) {
+func (this *Api) CachedRetrieve(request Request) (items []Item, err error) {
 	request.Api = *this
 
 	data, err := ioutil.ReadFile(rawCacheFile)
 	if err != nil {
 		fmt.Println("Requsting API")
-		data = this.doRequest(request)
+		data, err = this.doRequest(request)
+		if err != nil {
+			return nil, err
+		}
 		ioutil.WriteFile(rawCacheFile, data, 0666)
 	} else {
 		fmt.Println("Loaded from cache")
 	}
 
-	response := this.parseResponse(bytes.NewReader(data))
+	response, err := this.parseResponse(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
 	response.dump(dumpFile)
 	items = response.getItems()
 	return

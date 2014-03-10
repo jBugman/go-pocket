@@ -8,27 +8,42 @@ import (
 	"net/http"
 )
 
-func (this *Api) Retrieve(request Request) (items []Item) {
+func (this *Api) Retrieve(request Request) (items []Item, err error) {
 	request.Api = *this
 
-	data := this.doRequest(request)
-	response := this.parseResponse(bytes.NewReader(data))
+	data, err := this.doRequest(request)
+	if err != nil {
+		return nil, err
+	}
+	response, err := this.parseResponse(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
 	items = response.getItems()
 	return
 }
 
-func (this *Api) doRequest(request Request) []byte {
+func (this *Api) doRequest(request Request) ([]byte, error) {
 	requestBody, _ := json.Marshal(request)
-	response, _ := http.Post(retrieveUrl, "application/json", bytes.NewReader(requestBody))
+	response, err := http.Post(retrieveUrl, "application/json", bytes.NewReader(requestBody))
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
-	bodyBytes, _ := ioutil.ReadAll(response.Body)
-	return bodyBytes
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	return bodyBytes, nil
 }
 
-func (this *Api) parseResponse(body io.Reader) (response RetrieveResponse) {
+func (this *Api) parseResponse(body io.Reader) (response RetrieveResponse, err error) {
 	jsonParser := json.NewDecoder(body)
-	_ = jsonParser.Decode(&response)
-	return response
+	err = jsonParser.Decode(&response)
+	if err != nil {
+		return RetrieveResponse{}, err
+	}
+	return response, nil
 }
 
 type Request struct {
@@ -101,19 +116,19 @@ type Item struct {
 	// The title that was saved along with the item.
 	Title string `json:"resolved_title"`
 	// The title that Pocket found for the item when it was parsed
-	Favorite int `json:"favorite"`
+	Favorite string `json:"favorite"`  // TODO: Pocket uses strings here. Should I convert to int?
 	// 0 or 1 - 1 If the item is favorited
-	Status int `json:"status"`
+	Status string `json:"status"`
 	// 0, 1, 2 - 1 if the item is archived - 2 if the item should be deleted
 	Excerpt string `json:"excerpt"`
 	// The first few lines of the item (articles only)
-	IsArticle int `json:"is_article"`
+	IsArticle string `json:"is_article"`
 	// 0 or 1 - 1 if the item is an article
-	HasImage int `json:"has_image"`
+	HasImage string `json:"has_image"`
 	// 0, 1, or 2 - 1 if the item has images in it - 2 if the item is an image
-	HasVideo int `json:"has_video"`
+	HasVideo string `json:"has_video"`
 	// 0, 1, or 2 - 1 if the item has videos in it - 2 if the item is a video
-	WordCount int `json:"word_count"`
+	WordCount string `json:"word_count"`
 	// How many words are in the article
 	Tags map[string]Tag `json:"tags,omitempty"`
 	// A JSON object of the user tags associated with the item
