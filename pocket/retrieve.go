@@ -3,53 +3,16 @@ package pocket
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 )
 
-const (
-	rawCacheFile = "cache.json"
-	dumpFile     = "dump.json"
-)
-
-func (this *Api) Retrieve() (items []Item) {
-	request := Request{
-		Api:         *this,
-		State:       "all",
-		ContentType: "article",
-		Count:       3,
-		DetailType:  "complete",
-	}
+func (this *Api) Retrieve(request Request) (items []Item) {
+	request.Api = *this
 
 	data := this.doRequest(request)
 	response := this.parseResponse(bytes.NewReader(data))
-	items = response.getItems()
-	return
-}
-
-// Cached retrieve for testing
-func (this *Api) TestRetrieve() (items []Item) {
-	request := Request{
-		Api:         *this,
-		State:       "all",
-		ContentType: "article",
-		Count:       3,
-		DetailType:  "complete",
-	}
-
-	data, err := ioutil.ReadFile(rawCacheFile)
-	if err != nil {
-		fmt.Println("Requsting API")
-		data = this.doRequest(request)
-		ioutil.WriteFile(rawCacheFile, data, 0666)
-	} else {
-		fmt.Println("Loaded from cache")
-	}
-
-	response := this.parseResponse(bytes.NewReader(data))
-	response.dump(dumpFile)
 	items = response.getItems()
 	return
 }
@@ -112,11 +75,6 @@ type RetrieveResponse struct {
 
 func (this *RetrieveResponse) getItems() []Item {
 	return this.List.Values()
-}
-
-func (this *RetrieveResponse) dump(filename string) {
-	pretty, _ := json.MarshalIndent(this, "", "	")
-	ioutil.WriteFile(filename, pretty, 0666)
 }
 
 type InternalItemList map[string]Item
